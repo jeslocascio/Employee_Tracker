@@ -233,6 +233,28 @@ const addEmployee = () => {
 };
 
 
+//Define a function to add a department
+const addDepartment = () => {
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "department_name",
+        message: "What is the department you would like to add?",
+      },
+    ])
+  .then((res) => {
+    // Query to insert new department into department table
+    db.query(`INSERT INTO department (name) VALUES (?)`,
+    [res.department_name], (err, result) => {
+      if (err) throw err;
+
+      console.log(`Added department: ${res.department_name}`);
+      viewDepartments();
+    });
+  });
+};
+
 // Define a function to add a role
 const addRole = () => {
  // Query is selecting all rows from the department table
