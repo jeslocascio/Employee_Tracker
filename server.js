@@ -286,56 +286,63 @@ const addRole = () => {
 
 // Define a function to update an employee's role
 const updateRole = () => {
-  // Query to get all employees to pass to the Inquirer prompt
-  db.query(`SELECT * FROM employees`, (err, rows) => {
-    if (err) {
-      console.log(err);
-    }
-    const employeeChoices = rows.map(({ id, first_name, last_name }) => ({
-      name: `${first_name} ${last_name}`,
-      id: id,
-    }));
-  });
-  //Pass the employeeChoices array to the Inquirer prompt to allow the user to select an employee to update
-  inquirer
-    .prompt([
-      {
-        type: "choice",
-        name: "employee",
-        message: "Which employee's role would you like to update?",
-        choices: employeeChoices,
-      },
-    ])
-    .then((response) => {
+
+  // Collecting information from the employee table
+  const getEmployeeList = `SELECT id, CONCAT(first_name, ' ', last_name) AS employee_name from employee`;
+
+  const getRoleList = `SELECT id, title FROM role`;
+
+  //Query is passing the information we collected in getEmployeeList
+  db.query(getEmployeeList, (err, employees) => {
+    if (err) throw err;
+
+    // Query is passing the information we collected in getRoleList
+    db.query(getRoleList, (err, roles) => {
+      if (err) throw err;
+
+      const employeeOptions = employees.map((employee) => ({
+        name: employee.employee_name,
+        value: employee.id,
+      }));
+
+      const roleOptions = roles.map((role) => ({
+        name: role.title,
+        value: role.id,
+      }));
+
       inquirer
         .prompt([
           {
-            type: "choice",
+            type: "list",
+            name: "employee",
+            message: "Which employee are you updating?",
+            choices: employeeOptions,
+          },
+          {
+            type: "list",
             name: "role",
-            message: "What is the employee's new role?",
-            choices: [
-              "Sales Lead",
-              "Salesperson",
-              "Lead Engineer",
-              "Software Engineer",
-              "Account Manager",
-              "Accountant",
-              "Legal Team Lead",
-              "Lawyer",
-            ],
+            message: "What role will this employee be assigned to?",
+            choices: roleOptions,
           },
         ])
-        .then((response) => {
-          sql = `UPDATE employees SET role_id = ? WHERE id = ?`;
-          db.query(sql, [response.role, response.employee], (err, rows) => {
-            if (err) {
-              console.log(err);
-            }
-            console.table(rows);
-            mainMenu();
+        .then((res) => {
+          db.query(`UPDATE employee SET role_id = ? WHERE id = ?`,
+          [res.role, res.employee], (err, result) => {
+            if (err) throw err;
+
+            const chosenEmployee = employees.find(
+              (employee) => employee.id === res.employee
+            );
+
+            const chosenRole = roles.find((role) => role.id === res.role);
+            console.log(
+              `UPDATE employee ${chosenEmployee.employee_name} to role ${chosenRole.title}`
+            );
+            viewEmployees();
           });
         });
     });
+  });
 };
 
 // Define a function to remove an employee
