@@ -151,140 +151,137 @@ const viewRoles = () => {
 // Define a function to add an employee
 const addEmployee = () => {
   let getMan =
-  `SELECT manager_id, first_name, last_name FROM employee WHERE manager_id IS NOT NULL;`;
+    `SELECT manager_id, first_name, last_name FROM employee WHERE manager_id IS NOT NULL;`;
   let getRole =
-  `SELECT id, title FROM role;`;
+    `SELECT id, title FROM role;`;
 
   // Query to get all managers and map them into a variable for Inquirer
   const getManPromise = new Promise((resolve, reject) => {
-  db.query(getMan, (err, rows) => {
-    if (err) {
-      reject(err);
-    }
-    resolve(rows.map(({ manager_id, first_name, last_name }) => ({
-      name: `${first_name} ${last_name}`,
-      id: `${manager_id}`
-    })));
-  });
+    db.query(getMan, (err, rows) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(rows.map(({ manager_id, first_name, last_name }) => ({
+        name: `${first_name} ${last_name}`,
+        id: `${manager_id}`
+      })));
+    });
   });
   // Query to get all roles and map them into a variable for Inquirer
   const getRolePromise = new Promise((resolve, reject) => {
-  db.query(getRole, (err, rows) => {
-    if (err) {
-      reject(err);
-    }
-    resolve(rows.map(({ id, title }) => ({
-      name: `${title}`,
-      id: `${id}`
-    })));
-  });
-  });
-// Use Promise.all to wait for all promises to resolve
-Promise.all([getManPromise, getRolePromise])
-.then(([managerChoices, roleChoices]) => {
-  // Run the Inquirer prompt after the database queries have completed
-  inquirer
-    .prompt([
-      {
-        type: "input",
-        name: "first_name",
-        message: "What is the employee's first name?",
-      },
-      {
-        type: "input",
-        name: "last_name",
-        message: "What is the employee's last name?",
-      },
-      {
-        type: "list",
-        name: "role_id",
-        message: "What is the employee's role?",
-        choices: roleChoices.map(choice => { return {name: choice.name, value: choice.id}}),
-      },
-      {
-        type: "list",
-        name: "manager_id",
-        message: "Who is the employee's manager?",
-        choices: [...managerChoices.map(choice => { return {name: choice.name, value: choice.id}}), "None"],
-      },
-    ])
-    .then((response) => {
-      let sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
-      let manager_id = response.manager_id === "None" ? null : response.manager_id;
-      db.query(
-        sql,
-        [
-          response.first_name,
-          response.last_name,
-          response.role_id,
-          manager_id,
-        ],
-        (err, rows) => {
-          if (err) {
-            console.log(err);
-          }
-          console.log(`Employee ${response.first_name} ${response.last_name} added successfully!`);
-          mainMenu();
-        }
-      );
+    db.query(getRole, (err, rows) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(rows.map(({ id, title }) => ({
+        name: `${title}`,
+        id: `${id}`
+      })));
     });
-})
-.catch(err => console.log(err));
+  });
+  // Use Promise.all to wait for all promises to resolve
+  Promise.all([getManPromise, getRolePromise])
+    .then(([managerChoices, roleChoices]) => {
+      // Run the Inquirer prompt after the database queries have completed
+      inquirer
+        .prompt([
+          {
+            type: "input",
+            name: "first_name",
+            message: "What is the employee's first name?",
+          },
+          {
+            type: "input",
+            name: "last_name",
+            message: "What is the employee's last name?",
+          },
+          {
+            type: "list",
+            name: "role_id",
+            message: "What is the employee's role?",
+            choices: roleChoices.map(choice => { return { name: choice.name, value: choice.id } }),
+          },
+          {
+            type: "list",
+            name: "manager_id",
+            message: "Who is the employee's manager?",
+            choices: [...managerChoices.map(choice => { return { name: choice.name, value: choice.id } }), "None"],
+          },
+        ])
+        .then((response) => {
+          let sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
+          let manager_id = response.manager_id === "None" ? null : response.manager_id;
+          db.query(
+            sql,
+            [
+              response.first_name,
+              response.last_name,
+              response.role_id,
+              manager_id,
+            ],
+            (err, rows) => {
+              if (err) {
+                console.log(err);
+              }
+              console.log(`Employee ${response.first_name} ${response.last_name} added successfully!`);
+              mainMenu();
+            }
+          );
+        });
+    })
+    .catch(err => console.log(err));
 };
 
 
 // Define a function to add a role
 const addRole = () => {
-  // Query to get all employees to pass to the Inquirer prompt
-  db.query(`SELECT * FROM employees`, (err, rows) => {
-    if (err) {
-      console.log(err);
-    }
-    const employeeChoices = rows.map(({ id, first_name, last_name }) => ({
-      name: `${first_name} ${last_name}`,
-      id: id,
+ // Query is selecting all rows from the department table
+  db.query(`SELECT * from department`, (err, rows) => {
+    if (err) throw err;
+
+    const departmentOptions = rows.map((department) => ({
+      name: department.name,
+      value: department.id
     }));
+
+    inquirer
+      .prompt([
+        {
+          type: "input",
+          name: "role",
+          message: "What is the role called?",
+        },
+        {
+          type: "input",
+          name: "salary",
+          message: "How much does this role earn?",
+        },
+        {
+          type: "list",
+          name: "department_id",
+          message: "What department will the employee be working in?",
+          choices: departmentOptions,
+        },
+      ])
+      .then((res) => {
+
+        //Query is inserting the newly created role into the department table
+        db.query(`INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)`,
+        [res.role, res.salary, res.department_id],
+        (err, result) => {
+          if (err) throw err;
+      
+          console.log(
+            `Added Role: ${res.role} Salary: ${res.salary} Department: ${departmentOptions.find(
+              (department) => department.value === res.department_id
+            ).name
+          }`
+          );
+        }
+      );
+        viewRoles();
+      });
   });
-  // Pass the employeeChoices array to the Inquirer prompt, which allows the user to update a selected Employee
-  inquirer
-    .prompt([
-      {
-        type: "choice",
-        name: "employee",
-        message: "Which employee's role would you like to update?",
-        choices: employeeChoices,
-      },
-    ])
-    .then((response) => {
-      inquirer
-        .prompt([
-          {
-            type: "choice",
-            name: "role",
-            message: "What is the employee's new role?",
-            choices: [
-              "Sales Lead",
-              "Salesperson",
-              "Lead Engineer",
-              "Software Engineer",
-              "Account Manager",
-              "Accountant",
-              "Legal Team Lead",
-              "Lawyer",
-            ],
-          },
-        ])
-        .then((response) => {
-          sql = `UPDATE employees SET role_id = ? WHERE id = ?`;
-          db.query(sql, [response.role, response.employee], (err, rows) => {
-            if (err) {
-              console.log(err);
-            }
-            console.table(rows);
-            mainMenu();
-          });
-        });
-    });
 };
 
 // Define a function to update an employee's role
@@ -411,7 +408,7 @@ const removeDepartment = () => {
 
 // Define a function to remove a role
 const removeRole = () => {
-   // Query to get all roles to pass to the Inquirer prompt
+  // Query to get all roles to pass to the Inquirer prompt
   db.query(`SELECT * FROM role`, (err, rows) => {
     if (err) {
       console.log(err);
@@ -421,7 +418,7 @@ const removeRole = () => {
       id: id,
     }));
   });
-   // Pass the roleChoices array to the Inquirer prompt, which allows the user to update the selected employee
+  // Pass the roleChoices array to the Inquirer prompt, which allows the user to update the selected employee
   inquirer
     .prompt([
       {
