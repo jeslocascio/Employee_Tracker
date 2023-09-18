@@ -3,6 +3,35 @@ require("dotenv").config();
 const inquirer = require("inquirer");
 const mysql = require("mysql2");
 
+// Function to display the title
+const displayTitle = () => {
+  console.log(
+    `
+ #######                                                 
+ #       #    # #####  #       ####  #   # ###### ###### 
+ #       ##  ## #    # #      #    #  # #  #      #      
+ #####   # ## # #    # #      #    #   #   #####  #####  
+ #       #    # #####  #      #    #   #   #      #      
+ #       #    # #      #      #    #   #   #      #      
+ ####### #    # #      ######  ####    #   ###### ###### 
+ #######                                                 
+    #    #####    ##    ####  #    # ###### #####        
+    #    #    #  #  #  #    # #   #  #      #    #       
+    #    #    # #    # #      ####   #####  #    #       
+    #    #####  ###### #      #  #   #      #####        
+    #    #   #  #    # #    # #   #  #      #   #        
+    #    #    # #    #  ####  #    # ###### #    # 
+    ------------------------------------------------------
+    ------------------------------------------------------
+
+
+    `
+  )
+}
+
+//Call the displayTitle function to display the title
+displayTitle();
+
 // Establish a connection to the database
 const db = mysql.createConnection(
   {
@@ -413,5 +442,6 @@ const removeRole = () => {
       });
     });
 };
+
 
 
