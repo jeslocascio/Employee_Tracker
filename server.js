@@ -421,36 +421,44 @@ const removeEmployee = () => {
 
 // Define a function to remove a department
 const removeDepartment = () => {
-  // Query to get all departments to pass to the Inquirer prompt
-  db.query(`SELECT * FROM departments`, (err, rows) => {
-    if (err) {
-      console.log(err);
-    }
-    const departmentChoices = rows.map(({ id, department_name }) => ({
-      name: `${department_name}`,
-      id: id,
+  // Query the database to get a list of departments
+  const getDepartmentList = `
+    SELECT id, name FROM department
+  `;
+
+  db.query(getDepartmentList, (err, departments) => {
+    if (err) throw err;
+
+    // Extract department names and ids from the query result
+    const departmentChoices = departments.map((department) => ({
+      name: department.name,
+      value: department.id,
     }));
-  });
-  // Pass the departmentChoices array to the Inquirer prompt, which allows the user to update the selected employee
-  inquirer
-    .prompt([
-      {
-        type: "choice",
-        name: "department",
-        message: "Which department would you like to remove?",
-        choices: departmentChoices,
-      },
-    ])
-    .then((response) => {
-      sql = `DELETE FROM departments WHERE id = ?`;
-      db.query(sql, [response.department], (err, rows) => {
-        if (err) {
-          console.log(err);
-        }
-        console.table(rows);
-        mainMenu();
+
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "department",
+          message: "Which department would you like to delete?",
+          choices: departmentChoices,
+        },
+      ])
+      .then((res) => {
+        const query = `
+          DELETE FROM department WHERE id = ?
+        `;
+        db.query(query, [res.department], (err, result) => {
+          if (err) throw err;
+          // Retrieve the selected department's name
+          const selectedDepartment = departments.find(
+            (department) => department.id === res.department
+          );
+          console.log(`Deleted department ${selectedDepartment.name}`);
+          viewDepartments();
+        });
       });
-    });
+  });
 };
 
 // Define a function to remove a role
