@@ -378,36 +378,45 @@ const updateRole = () => {
 
 // Define a function to remove an employee
 const removeEmployee = () => {
-  // Query to get all employees to pass to the Inquirer prompt
-  db.query(`SELECT * FROM employees`, (err, rows) => {
-    if (err) {
-      console.log(err);
-    }
-    const employeeChoices = rows.map(({ id, first_name, last_name }) => ({
-      name: `${first_name} ${last_name}`,
-      id: id,
+  // Query the database to get a list of employees
+  const getEmployeeList = `
+    SELECT id, CONCAT(first_name, ' ', last_name) AS employee_name
+    FROM employee
+  `;
+
+  db.query(getEmployeeList, (err, employees) => {
+    if (err) throw err;
+
+    // Extract employee names and ids from the query result
+    const employeeChoices = employees.map((employee) => ({
+      name: employee.employee_name,
+      value: employee.id,
     }));
-  });
-  // Pass the employeeChoices array to the Inquirer prompt, which allows the user to update the selected employee
-  inquirer
-    .prompt([
-      {
-        type: "choice",
-        name: "employee",
-        message: "Which employee would you like to remove?",
-        choices: employeeChoices,
-      },
-    ])
-    .then((response) => {
-      sql = `DELETE FROM employees WHERE id = ?`;
-      db.query(sql, [response.employee], (err, rows) => {
-        if (err) {
-          console.log(err);
-        }
-        console.table(rows);
-        mainMenu();
+
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "employee",
+          message: "Which employee would you like to delete?",
+          choices: employeeChoices,
+        },
+      ])
+      .then((res) => {
+        const query = `
+          DELETE FROM employee WHERE id = ?
+        `;
+        db.query(query, [res.employee], (err, result) => {
+          if (err) throw err;
+          // Retrieve the selected employee's name
+          const selectedEmployee = employees.find(
+            (employee) => employee.id === res.employee
+          );
+          console.log(`Deleted employee ${selectedEmployee.name}`);
+          viewEmployees();
+        });
       });
-    });
+  });
 };
 
 // Define a function to remove a department
