@@ -463,36 +463,44 @@ const removeDepartment = () => {
 
 // Define a function to remove a role
 const removeRole = () => {
-  // Query to get all roles to pass to the Inquirer prompt
-  db.query(`SELECT * FROM role`, (err, rows) => {
-    if (err) {
-      console.log(err);
-    }
-    const roleChoices = rows.map(({ id, title }) => ({
-      name: `${title}`,
-      id: id,
-    }));
-  });
-  // Pass the roleChoices array to the Inquirer prompt, which allows the user to update the selected employee
-  inquirer
-    .prompt([
-      {
-        type: "choice",
-        name: "role",
-        message: "Which role would you like to remove?",
-        choices: roleChoices,
-      },
-    ])
-    .then((response) => {
-      sql = `DELETE FROM role WHERE id = ?`;
-      db.query(sql, [response.role], (err, rows) => {
-        if (err) {
-          console.log(err);
-        }
-        console.table(rows);
-        mainMenu();
-      });
-    });
+   // Query the database to get a list of roles
+   const getRoleList = `
+   SELECT id, title FROM role
+ `;
+
+ db.query(getRoleList, (err, roles) => {
+   if (err) throw err;
+
+   // Extract role names and ids from the query result
+   const roleChoices = roles.map((role) => ({
+     name: role.title,
+     value: role.id,
+   }));
+
+   inquirer
+     .prompt([
+       {
+         type: "list",
+         name: "role",
+         message: "Which role would you like to delete?",
+         choices: roleChoices,
+       },
+     ])
+     .then((res) => {
+       const query = `
+         DELETE FROM role WHERE id = ?
+       `;
+       db.query(query, [res.role], (err, result) => {
+         if (err) throw err;
+         // Retrieve the selected role's name
+         const selectedRole = roles.find(
+           (role) => role.id === res.role
+         );
+         console.log(`Deleted role ${selectedRole.title}`);
+         viewRoles();
+       });
+     });
+ });
 };
 
 
